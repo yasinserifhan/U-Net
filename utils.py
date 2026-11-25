@@ -57,7 +57,8 @@ def check_accuracy(loader, model, device="cuda"):
     num_correct = 0
     num_pixels = 0
     model.eval()
-
+    intersection = 0.0
+    total = 0.0
     with torch.no_grad():
         for x, y in loader:
             x = x.to(device=device)
@@ -67,13 +68,18 @@ def check_accuracy(loader, model, device="cuda"):
             preds = (preds > 0.5).float()
             num_correct += (preds == y).sum()
             num_pixels += torch.numel(preds)
-            dice_score = (2 * (preds * y).sum()) / ((preds + y).sum() + 1e-8)
+            intersection +=  (preds * y).sum().item()
+            total += ((preds + y).sum().item()
 
+    dice_score = 2 * intersection / (total + 1e-8)
     print(f"Got {num_correct}/{num_pixels} with accuracy {num_correct/num_pixels*100:.2f}%")
     print(f"Dice score: {dice_score}")
     model.train()
+    return dice_score
 
 def save_predictions_as_imgs(loader, model, folder="saved_images/", device="cuda"):
+    if not os.path.exists(folder):
+        os.makedirs(folder)
     model.eval()
     for idx, (x, _) in enumerate(loader):
         x = x.to(device=device)
