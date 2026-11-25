@@ -41,3 +41,5 @@ Defaults (top of `train.py`): batch size 16, 3 epochs, 320×480 input, CUDA when
 
 - Evaluation uses only the 10% validation split; there is no separate test set or early stopping.
 - Training is short by default (3 epochs).
+
+This repo used  "U-Net from scratch / Carvana" (Aladdin Persson) for core structure
