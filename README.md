@@ -1,75 +1,43 @@
+# U-Net from scratch in PyTorch
 
-# PyTorch U-Net Image Segmentation
+A from-scratch PyTorch implementation of U-Net for binary image segmentation, set up for the Carvana Image Masking Challenge data (car vs. background masks). Swap the dataset class to use it for other binary segmentation tasks.
 
-This repository contains a PyTorch implementation of the U-Net architecture for image segmentation. The project is configured out-of-the-box for a Carvana-style dataset but can be adapted for other binary segmentation tasks.
+<!-- Bir tutorial'dan yola çıktıysan buraya ekle: "Based on <tutorial adı + link>; my changes: 320×480 input, train/val split with scikit-learn, ..." -->
 
-## Features
+## What's in the code
 
-* **Custom U-Net Architecture:** Built from scratch using PyTorch, featuring `DoubleConv` blocks, downsampling, and upsampling with skip connections.
-* **Robust Data Pipeline:** Custom `CarvanaDataset` class that automatically converts raw images to RGB, processes mask images to grayscale, and binarizes the mask values.
-* **Data Augmentation:** Utilizes the `albumentations` library for dynamic data augmentation, including resizing, rotations, horizontal/vertical flips, and normalization.
-* **Mixed Precision Training:** Implements `torch.cuda.amp.GradScaler` to significantly speed up the training process and reduce memory usage.
-* **Automatic Data Splitting:** Uses `scikit-learn` to automatically split the dataset into a 90% training and 10% validation set.
-* **Comprehensive Metrics:** Calculates Pixel Accuracy and Dice Score during the validation phase to strictly monitor model performance.
-* **Checkpoint Management:** Includes utility functions to save and load model states to easily resume training.
+| File | Contents |
+|---|---|
+| `model.py` | U-Net: four encoder stages of `DoubleConv` (two 3×3 conv → BatchNorm → ReLU) with 64 / 128 / 256 / 512 channels, a 1024-channel bottleneck, a transposed-conv decoder with skip connections, and a 1×1 output conv. If a decoder feature map and its skip connection differ in size, the decoder output is resized, so odd input sizes work. `python model.py` runs a shape test on a 161×161 input. |
+| `dataset.py` | `CarvanaDataset`: loads RGB images and grayscale masks, binarizes masks to {0, 1}. |
+| `train.py` | `BCEWithLogitsLoss`, Adam (lr 1e-4), mixed-precision training with a gradient scaler, albumentations augmentation (resize to 320×480, rotation up to ±35°, horizontal and vertical flips). |
+| `utils.py` | 90/10 train/validation split (scikit-learn, fixed seed), data loaders, checkpoint save/load, pixel accuracy and Dice on the validation set, predicted masks saved as PNG. |
 
-## Project Structure
+## Data
 
-* `model.py`: Contains the definition of the U-Net architecture (`UNet` and `DoubleConv` classes) and a simple testing script.
-* `dataset.py`: Defines the custom PyTorch `Dataset` used to load images and their corresponding mask files.
-* `train.py`: The main execution script that defines hyperparameters, loss functions (`BCEWithLogitsLoss`), the optimizer (`Adam`), and runs the training/validation loops.
-* `utils.py`: Helper functions for generating data loaders, computing evaluation metrics, and saving prediction samples as images.
+Not included. Download the training images and masks from the Kaggle **Carvana Image Masking Challenge** and arrange them as:
 
-## Configuration & Hyperparameters
-
-The training process is controlled by variables defined in `train.py`:
-* **Learning Rate:** `1e-4`
-* **Batch Size:** `16`
-* **Epochs:** `3`
-* **Image Dimensions:** Resized to `320x480` (original typically 1280x1918)
-* **Device:** Automatically detects and uses `cuda` if available, otherwise defaults to `cpu`.
-
-## Installation & Setup
-
-1. **Clone the repository:**
-   ```bash
-   git clone [https://github.com/yasinserifhan/U-Net.git](https://github.com/yasinserifhan/U-Net.git)
-   cd U-Net
-
+```text
+data/
+├── train/         # car_id.jpg
+└── train_masks/   # car_id_mask.gif
 ```
 
-2. **Install dependencies:**
-Ensure you have PyTorch installed. You will also need:
-```bash
-pip install albumentations scikit-learn tqdm Pillow numpy torchvision
-
-```
-
-
-3. **Prepare the Data:**
-By default, the script looks for your dataset in the following directories:
-* Images: `data/train/`
-* Masks: `data/train_masks/`
-
-
-*Note: Mask images are expected to have a `_mask.gif` suffix corresponding to their `.jpg` image counterparts.*
-
-## Usage
-
-To start training the model, simply run the training script:
+## Run
 
 ```bash
+pip install torch torchvision albumentations scikit-learn tqdm Pillow numpy
 python train.py
-
 ```
 
-During training, the script will:
+Defaults (top of `train.py`): batch size 16, 3 epochs, 320×480 input, CUDA when available. After each epoch the script prints validation pixel accuracy and Dice, saves `my_checkpoint.pth.tar`, and writes predicted masks to `saved_images/`.
 
-1. Display a progress bar with the current loss using `tqdm`.
-2. Evaluate the model on the validation set after each epoch, printing the Pixel Accuracy and Dice Score.
-3. Save the model checkpoint to `my_checkpoint.pth.tar`.
-4. Save sample prediction overlays into a `saved_images/` folder.
+## Results
 
-```
+<!-- Bir eğitim çalıştırınca doldur: epoch sayısı, doğrulama Dice ve pixel accuracy, bir örnek görsel (görüntü | gerçek maske | tahmin).
+     Çalıştırmadan sayı yazma; bu bölümü o zamana kadar silebilirsin. -->
 
-```
+## Limitations
+
+- Evaluation uses only the 10% validation split; there is no separate test set or early stopping.
+- Training is short by default (3 epochs).
